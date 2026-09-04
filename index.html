@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STANT RIDER — Bike Helmets</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#0b0b0b;color:#fff}
+header{padding:22px 7%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #292929}
+.logo{font-size:25px;font-weight:900;color:#e50914}.cart{font-weight:700}
+main{padding:55px 7%;max-width:1200px;margin:auto}.hero h1{font-size:54px;margin:0 0 10px}.hero p{color:#bbb}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px;margin-top:35px}
+.card{background:#151515;border:1px solid #292929;border-radius:14px;padding:18px}.card img{width:100%;height:210px;object-fit:cover;border-radius:10px;background:#222}
+.card h3{margin-bottom:8px}.price{font-size:21px;font-weight:800;margin:12px 0}.btn{border:0;border-radius:9px;padding:12px 16px;font-weight:800;cursor:pointer;background:#e50914;color:#fff}
+.section{margin-top:55px}.box{background:#151515;border:1px solid #292929;border-radius:14px;padding:22px}
+input,textarea{width:100%;padding:12px;margin:7px 0 14px;border-radius:8px;border:1px solid #444;background:#0f0f0f;color:#fff}
+#cartItems div{padding:10px 0;border-bottom:1px solid #333}
+small{color:#aaa}
+</style>
+</head>
+<body>
+<header><div class="logo">STANT RIDER</div><div class="cart">Cart: <span id="cartCount">0</span></div></header>
+<main>
+<section class="hero"><h1>RIDE HARD. RIDE SAFE.</h1><p>Premium bike helmets by STANT RIDER.</p></section>
+<section class="grid" id="products"></section>
+
+<section class="section">
+<h2>Your Cart</h2><div class="box"><div id="cartItems">Cart is empty.</div><h3>Total: ₹<span id="total">0</span></h3></div>
+</section>
+
+<section class="section">
+<h2>Place Order</h2>
+<div class="box">
+<form id="orderForm">
+<input id="name" placeholder="Full Name" required>
+<input id="mobile" placeholder="Mobile Number" required>
+<textarea id="address" placeholder="Delivery Address" required></textarea>
+<button class="btn">Place Order</button>
+</form>
+<p id="msg"></p><small>Payment is not included yet. Your order is saved to the real database after Supabase setup.</small>
+</div>
+</section>
+</main>
+
+<script>
+/*
+  IMPORTANT:
+  Replace SUPABASE_URL and SUPABASE_ANON_KEY below with your Supabase project's
+  public URL and anon/publishable key. Never put the service-role key here.
+*/
+const SUPABASE_URL = "https://djiujrgvvrkjsrkwezvo.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_c44rL1QkDO9xjdf92qzxKg_raWwiisj";
+
+const products = [
+ {id:"helmet-1",name:"Rider Pro Helmet",price:1499,image:"https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=700&q=80"},
+ {id:"helmet-2",name:"Street Shield Helmet",price:1899,image:"https://images.unsplash.com/photo-1558980394-0c1d5b2d5a7d?auto=format&fit=crop&w=700&q=80"},
+ {id:"helmet-3",name:"Carbon X Helmet",price:2499,image:"https://images.unsplash.com/photo-1526422352529-1e1c3f2d6f8f?auto=format&fit=crop&w=700&q=80"}
+];
+let cart=[];
+
+function renderProducts(){
+ document.getElementById("products").innerHTML=products.map(p=>`
+ <article class="card"><img src="${p.image}" alt="${p.name}">
+ <h3>${p.name}</h3><div class="price">₹${p.price}</div>
+ <button class="btn" onclick="add('${p.id}')">Add to Cart</button></article>`).join("");
+}
+function add(id){const p=products.find(x=>x.id===id);const x=cart.find(x=>x.id===id);if(x)x.qty++;else cart.push({...p,qty:1});renderCart()}
+function renderCart(){
+ document.getElementById("cartCount").textContent=cart.reduce((s,x)=>s+x.qty,0);
+ document.getElementById("cartItems").innerHTML=cart.length?cart.map(x=>`<div>${x.name} × ${x.qty} — ₹${x.price*x.qty}</div>`).join(""):"Cart is empty.";
+ document.getElementById("total").textContent=cart.reduce((s,x)=>s+x.price*x.qty,0);
+}
+document.getElementById("orderForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ if(!cart.length){document.getElementById("msg").textContent="Cart is empty.";return}
+ if(SUPABASE_URL.includes("PASTE_")){document.getElementById("msg").textContent="Database setup pending: add your Supabase URL and anon key in this file.";return}
+ const payload={
+   customer_name:document.getElementById("name").value,
+   mobile:document.getElementById("mobile").value,
+   address:document.getElementById("address").value,
+   items:cart.map(x=>({id:x.id,name:x.name,price:x.price,quantity:x.qty})),
+   total:cart.reduce((s,x)=>s+x.price*x.qty,0),
+   status:"New"
+ };
+ try{
+  const r=await fetch(SUPABASE_URL+"/rest/v1/orders",{
+   method:"POST",
+   headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+SUPABASE_ANON_KEY,"Content-Type":"application/json","Prefer":"return=minimal"},
+   body:JSON.stringify(payload)
+  });
+  if(!r.ok) throw new Error(await r.text());
+  document.getElementById("msg").textContent="Order placed successfully!";
+  cart=[];renderCart();e.target.reset();
+ }catch(err){document.getElementById("msg").textContent="Order failed. Check Supabase setup.";console.error(err)}
+});
+renderProducts();renderCart();
+</script>
+</body>
+</html>

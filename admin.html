@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>STANT RIDER Admin</title>
+<style>
+body{font-family:Arial;background:#0b0b0b;color:#fff;padding:30px;max-width:1100px;margin:auto}
+input,button{padding:12px;margin:6px;border-radius:8px;border:1px solid #444;background:#151515;color:#fff}
+button{background:#e50914;font-weight:800;cursor:pointer}.card{background:#151515;padding:18px;margin:12px 0;border-radius:12px}
+</style></head><body>
+<h1>STANT RIDER — Admin</h1>
+<p>This is the admin dashboard starter. It requires Supabase Auth and the same project config.</p>
+<input id="email" placeholder="Admin email" type="email"><input id="password" placeholder="Password" type="password">
+<button onclick="login()">Login</button><button onclick="loadOrders()">Load Orders</button><button onclick="logout()">Logout</button>
+<div id="out"></div>
+<script>
+const SUPABASE_URL="https://djiujrgvvrkjsrkwezvo.supabase.co", SUPABASE_ANON_KEY="sb_publishable_c44rL1QkDO9xjdf92qzxKg_raWwiisj";
+let token="";
+let currentUser=null;
+async function login(){
+ const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":SUPABASE_ANON_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:email.value,password:password.value})});
+ const d=await r.json(); token=d.access_token||""; currentUser=d.user||null; document.getElementById("out").textContent=token?"Logged in. Click Load Orders.":(d.error_description||"Login failed");
+}
+async function loadOrders(){
+ if(!token){out.textContent="Login first.";return}
+ const r=await fetch(SUPABASE_URL+"/rest/v1/orders?select=*&order=created_at.desc",{headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+token}});
+ const d=await r.json(); out.innerHTML=Array.isArray(d)?d.map(o=>`<div class="card"><b>${o.customer_name}</b><br>Mobile: ${o.mobile}<br>Address: ${o.address}<br>Total: ₹${o.total}<br>Status: ${o.status}<br><small>${o.created_at}</small><pre>${JSON.stringify(o.items,null,2)}</pre></div>`).join(""):"Error loading orders: "+JSON.stringify(d);
+}
+async function logout(){token="";currentUser=null;out.textContent="Logged out.";}
+</script></body></html>
